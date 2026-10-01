@@ -9,7 +9,7 @@
   "homepage": "https://github.com/jjshah230309/frameup",
   "scripts": {
     "start": "electron .",
-    "test": "node --test test/",
+    "test": "node --test",
     "cli": "node src/cli.js",
     "icon": "electron scripts/make-icon.js",
     "build:apple": "node scripts/build-apple.js",
