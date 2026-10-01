@@ -1,0 +1,89 @@
+{
+  "name": "frameup",
+  "productName": "FrameUp",
+  "version": "0.1.0",
+  "description": "Upscale video with Upscayl and add silky-smooth frames with RIFE or Apple ML.",
+  "main": "main.js",
+  "license": "MIT",
+  "author": "jjshah230309",
+  "homepage": "https://github.com/jjshah230309/frameup",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/",
+    "cli": "node src/cli.js",
+    "icon": "electron scripts/make-icon.js",
+    "build:apple": "node scripts/build-apple.js",
+    "dist": "npm run build:apple && electron-builder",
+    "smoke": "node scripts/smoke-install.js"
+  },
+  "dependencies": {
+    "extract-zip": "^2.0.1"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "io.github.jjshah230309.frameup",
+    "productName": "FrameUp",
+    "copyright": "Copyright \u00a9 2026 jjshah230309",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "native/apple",
+        "to": "apple",
+        "filter": [
+          "frc.swift",
+          "frc"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "AudioVideo",
+      "icon": "build/icon.png",
+      "maintainer": "jjshah230309"
+    }
+  }
+}

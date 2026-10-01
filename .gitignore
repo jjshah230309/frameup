@@ -1,0 +1,7 @@
+node_modules/
+dist/
+native/apple/frc
+native/apple/frc.exe
+*.part
+.DS_Store
+work-*/
