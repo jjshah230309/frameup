@@ -79,3 +79,12 @@ test('device helpers map choices to ncnn flags and validate input', () => {
   assert.equal(U2.normEncoderMode('GPU'), 'gpu');
   assert.throws(() => U2.normEncoderMode('1'));
 });
+
+test('theme names are validated and default to dark', () => {
+  const U2 = require('../src/util');
+  assert.equal(U2.normTheme('light'), 'light');
+  assert.equal(U2.normTheme('system'), 'system');
+  assert.equal(U2.normTheme('dark'), 'dark');
+  assert.equal(U2.normTheme(undefined), 'dark');
+  assert.equal(U2.normTheme('sepia'), 'dark');
+});
