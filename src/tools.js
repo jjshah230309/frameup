@@ -77,7 +77,7 @@ class Tools {
   constructor({ dataDir, resourcesDir }) {
     this.dir = path.join(dataDir, 'tools');
     this.resourcesDir = resourcesDir;
-    this._encoder = null;
+    this._encoders = {};
   }
 
   // ---------- locating ----------
@@ -150,14 +150,17 @@ class Tools {
   }
 
   // ---------- encoder ----------
-  async pickEncoder(ffmpegPath) {
-    if (this._encoder) return this._encoder;
-    for (const enc of encoderCandidates()) {
+  // mode: 'auto' (hardware first, software fallback) | 'gpu' (hardware only) | 'cpu' (software only)
+  async pickEncoder(ffmpegPath, mode = 'auto') {
+    if (this._encoders[mode]) return this._encoders[mode];
+    const cands = encoderCandidates().filter((e) => mode === 'auto' || (mode === 'gpu') === e.hardware);
+    for (const enc of cands) {
       const r = await run(ffmpegPath, ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=black:s=256x256:d=0.2:r=25',
         '-vf', `format=${enc.pixFmt}`, ...enc.args(4_000_000), '-frames:v', '2', '-an', '-f', 'null', '-'], { timeout: 20000 });
-      if (r.ok) { this._encoder = enc; return enc; }
+      if (r.ok) { this._encoders[mode] = enc; return enc; }
     }
-    throw new Error('ffmpeg has no usable video encoder (tried hardware HEVC, x265 and x264).');
+    if (mode === 'gpu') throw new Error('No working GPU video encoder was found (tried ' + cands.map((e) => e.name).join(', ') + '). Set the encoder to Auto or CPU.');
+    throw new Error('ffmpeg has no usable video encoder (tried ' + cands.map((e) => e.name).join(', ') + ').');
   }
 
   // ---------- installing ----------

@@ -81,6 +81,20 @@
           <div class="grow"><div class="lbl">Temporary folder <span class="muted">(frames live here while working)</span></div><div class="path" id="tmpPath">—</div><div class="hint" id="tmpHint"></div></div>
           <button class="btn ghost" id="pickTmp">Change…</button>
         </div>
+        <div class="devs">
+          <div class="lbl">Processing device <span class="muted">(which parts run on the GPU or CPU)</span></div>
+          <div class="row gap"><label for="devPreset">Preset</label>
+            <select id="devPreset"><option value="auto">Automatic (GPU where available)</option><option value="gpu">All on GPU</option><option value="cpu">All on CPU</option><option value="custom">Custom (per stage)</option></select></div>
+          <div class="devgrid" id="devGrid">
+            <label for="devUp">Upscale</label>
+            <select id="devUp"><option value="auto">Auto</option><option value="gpu">GPU (default)</option><option value="0">GPU 0</option><option value="1">GPU 1</option><option value="2">GPU 2</option><option value="cpu">CPU (very slow)</option></select>
+            <label for="devInterp">Interpolate</label>
+            <select id="devInterp"><option value="auto">Auto</option><option value="gpu">GPU (default)</option><option value="0">GPU 0</option><option value="1">GPU 1</option><option value="2">GPU 2</option><option value="cpu">CPU (very slow)</option></select>
+            <label for="devEnc">Encode</label>
+            <select id="devEnc"><option value="auto">Auto (hardware, else CPU)</option><option value="gpu">GPU hardware encoder only</option><option value="cpu">CPU (x265 / x264)</option></select>
+          </div>
+          <div class="hint" id="devHint"></div>
+        </div>
       </details>
     </div>
 

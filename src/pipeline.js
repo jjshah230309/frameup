@@ -29,12 +29,15 @@ class Pipeline extends EventEmitter {
    *   kind: 'video' | 'frames', input, srcFps (frames only),
    *   upscale: { model, scale } | null,
    *   targetFps: number | null (null/equal => no interpolation), engine: 'rife' | 'apple',
-   *   outDir, workRoot
+   *   outDir, workRoot,
+   *   devices: { upscale, interpolate: 'auto'|'cpu'|'gpu'|<gpu index>, encode: 'auto'|'gpu'|'cpu' } (all optional)
    * }
    */
   constructor(opts, tools) {
     super();
     this.opts = opts;
+    const d = opts.devices || {};
+    this.dev = { upscale: U.normDevice(d.upscale), interpolate: U.normDevice(d.interpolate), encode: U.normEncoderMode(d.encode) };
     this.tools = tools;
     this.cancelled = false;
     this.child = null;
@@ -53,6 +56,8 @@ class Pipeline extends EventEmitter {
     this.cancelled = true;
     killTree(this.child);
   }
+
+  _devNote(d) { return d === 'cpu' ? ' · CPU' : /^\d+$/.test(d) ? ` · GPU ${d}` : ''; }
 
   _check() { if (this.cancelled) throw new Error('Cancelled'); }
 
@@ -208,8 +213,8 @@ class Pipeline extends EventEmitter {
         await this._needSpace(fb * N * o.upscale.scale * o.upscale.scale * 0.8, 'upscaling');
         await fsp.mkdir(UP, { recursive: true });
         const native = (/(\d)x/.exec(o.upscale.model) || [null, '4'])[1];
-        this._begin(si, `Upscayl · ${o.upscale.model} · ${o.upscale.scale}x`, N);
-        const job = this._spawn(up.bin, ['-i', IN, '-o', UP, '-m', up.modelsDir, '-n', o.upscale.model, '-z', native, '-s', String(o.upscale.scale), '-f', 'png']);
+        this._begin(si, `Upscayl · ${o.upscale.model} · ${o.upscale.scale}x${this._devNote(this.dev.upscale)}`, N);
+        const job = this._spawn(up.bin, ['-i', IN, '-o', UP, '-m', up.modelsDir, '-n', o.upscale.model, '-z', native, '-s', String(o.upscale.scale), '-f', 'png', ...U.ncnnDeviceArgs(this.dev.upscale)]);
         const r = await this._watch(job, () => this._countDir(UP));
         this._check();
         if (r.code !== 0) throw new Error(`Upscayl failed:\n${r.tail}`);
@@ -232,7 +237,7 @@ class Pipeline extends EventEmitter {
       const out = U.uniquePath(o.outDir, U.outputBaseName({ name, upscale: o.upscale, interpolate, engine: o.engine, fps: Number.isInteger(outFps) ? outFps : outFps.toFixed(3) }), '.mp4');
 
       const encode = async (dir, count) => {
-        const enc = await t.pickEncoder(FF.ffmpeg);
+        const enc = await t.pickEncoder(FF.ffmpeg, this.dev.encode);
         this._begin(si, `${enc.label} · ${(br / 1e6).toFixed(0)} Mbps · ${outFps} fps`, count);
         const stats = { frame: 0 };
         const job = this._spawn(FF.ffmpeg, ['-v', 'error', '-nostats', '-progress', 'pipe:1', '-framerate', String(outFps), '-i', path.join(dir, `%08d${PNG_EXT}`),
@@ -263,9 +268,10 @@ class Pipeline extends EventEmitter {
         const rife = t.rife();
         await this._needSpace(fb * M * 1.1, 'RIFE');
         await fsp.mkdir(OUTF, { recursive: true });
-        this._begin(si, `RIFE · ${srcFps} → ${outFps} fps · ${W}×${H}`, M);
+        this._begin(si, `RIFE · ${srcFps} → ${outFps} fps · ${W}×${H}${this._devNote(this.dev.interpolate)}`, M);
         const args = ['-i', CUR, '-o', OUTF, '-m', rife.modelDir, '-n', String(M), '-f', '%08d.png'];
         if (W >= 2560) args.push('-u');
+        args.push(...U.ncnnDeviceArgs(this.dev.interpolate));
         const job = this._spawn(rife.bin, args);
         const r = await this._watch(job, () => this._countDir(OUTF));
         this._check();

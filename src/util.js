@@ -68,4 +68,25 @@ function uniquePath(dir, base, ext) {
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const isImage = (f) => IMAGE_EXT.has(path.extname(f).toLowerCase()) && !path.basename(f).startsWith('._');
 
-module.exports = { naturalSort, fmtTime, parseFps, isWhole, targetFrames, bitrateFor, planStages, overallPercent, outputBaseName, uniquePath, isImage };
+// Device choice for a stage: 'auto' | 'cpu' | 'gpu' | '<gpu index>'.
+// Upscayl / RIFE (ncnn) take `-g <id>`; -1 means CPU, omitting it means auto-pick.
+function normDevice(v) {
+  const s = String(v == null ? 'auto' : v).trim().toLowerCase();
+  if (s === '' || s === 'auto' || s === 'gpu') return s || 'auto';
+  if (s === 'cpu') return 'cpu';
+  if (/^\d+$/.test(s)) return s;
+  throw new Error(`Invalid device "${v}" (use auto, cpu, gpu or a GPU number).`);
+}
+function ncnnDeviceArgs(v) {
+  const d = normDevice(v);
+  if (d === 'cpu') return ['-g', '-1'];
+  if (/^\d+$/.test(d)) return ['-g', d];
+  return []; // auto / gpu: let the tool pick (it uses the GPU by default)
+}
+function normEncoderMode(v) {
+  const s = String(v == null ? 'auto' : v).trim().toLowerCase();
+  if (['auto', 'gpu', 'cpu'].includes(s)) return s;
+  throw new Error(`Invalid encoder mode "${v}" (use auto, gpu or cpu).`);
+}
+
+module.exports = { normDevice, ncnnDeviceArgs, normEncoderMode, naturalSort, fmtTime, parseFps, isWhole, targetFrames, bitrateFor, planStages, overallPercent, outputBaseName, uniquePath, isImage };

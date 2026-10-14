@@ -58,6 +58,7 @@ main { max-width: 760px; margin: 0 auto; padding: 4px 24px 40px; }
 .srcinfo .row { margin-top: 10px; }
 
 select, input[type=number] { font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.devs { margin-top: 14px; } .devgrid { display: grid; grid-template-columns: 90px 1fr; gap: 8px 10px; align-items: center; margin-top: 10px; }
 select { width: 100%; } input[type=number] { width: 90px; }
 .seg { display: inline-flex; background: var(--soft); border-radius: 11px; padding: 3px; gap: 2px; }
 .seg.wide { display: flex; } .seg.wide button { flex: 1; }
