@@ -1,7 +1,7 @@
 {
   "name": "frameup",
   "productName": "FrameUp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Upscale video with Upscayl and add silky-smooth frames with RIFE or Apple ML.",
   "main": "main.js",
   "license": "MIT",
@@ -26,7 +26,7 @@
   "build": {
     "appId": "io.github.jjshah230309.frameup",
     "productName": "FrameUp",
-    "copyright": "Copyright \u00a9 2026 jjshah230309",
+    "copyright": "Copyright © 2026 jjshah230309",
     "directories": {
       "output": "dist",
       "buildResources": "build"
