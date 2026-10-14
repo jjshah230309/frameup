@@ -20,6 +20,8 @@ Point it at a **video** (or a **folder of frames**) and it runs the whole pipeli
    (VideoToolbox / NVENC / AMF / QuickSync), falling back to x265 / x264
 5. **Audio** from a source video is copied into the result (stream copy, or AAC if the original codec doesn't fit in MP4). Not applicable to a folder of frames.
 
+**Appearance.** FrameUp has a dark and a light theme (or follows your system). Change it in *Settings*: the button in the top bar, or **⌘,** on macOS / **Ctrl+,** on Windows and Linux.
+
 A live progress view shows the current stage, `frames done / queued`, speed, ETA and overall progress. Cancelling is safe and temporary files are always cleaned up.
 
 ## Install
@@ -28,7 +30,7 @@ Grab the installer for your system from the **[Releases](../../releases)** page:
 
 | OS | File |
 |----|------|
-| macOS (Apple silicon / Intel) | `FrameUp-<version>-arm64.dmg` / `-x64.dmg` |
+| macOS (Apple silicon and Intel, one file) | `FrameUp-<version>-universal.dmg` |
 | Windows | `FrameUp Setup <version>.exe` |
 | Linux | `FrameUp-<version>.AppImage` or `.deb` |
 

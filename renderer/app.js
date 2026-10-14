@@ -15,6 +15,7 @@ const S = {
   upOn: true, upScale: 2, upModel: 'upscayl-standard-4x',
   fpsMode: '60', customFps: 48, engine: 'rife',
   devices: { upscale: 'auto', interpolate: 'auto', encode: 'auto' },
+  theme: document.documentElement.dataset.theme || 'dark',
   running: false,
 };
 
@@ -186,6 +187,28 @@ $('devPreset').addEventListener('change', () => {
   setDevices({ upscale: v, interpolate: v, encode: v });
 });
 for (const k in DEV_IDS) $(DEV_IDS[k]).addEventListener('change', () => setDevices({ ...S.devices, [k]: $(DEV_IDS[k]).value }));
+
+// ---------- settings (appearance) ----------
+const isMac = api.platform === 'darwin';
+function applyTheme(t) {
+  S.theme = t;
+  document.documentElement.dataset.theme = t;
+  seg('themeSeg', t);
+}
+function openSettings() { if (!$('settingsDlg').open) $('settingsDlg').showModal(); }
+document.querySelectorAll('#themeSeg button').forEach((b) => b.addEventListener('click', async () => {
+  applyTheme(b.dataset.v);
+  await api.settings.set({ theme: b.dataset.v });
+  await api.setTheme(b.dataset.v);
+}));
+$('settingsBtn').addEventListener('click', openSettings);
+$('settingsClose').addEventListener('click', () => $('settingsDlg').close());
+$('settingsKeys').textContent = isMac ? '⌘,' : 'Ctrl+,';
+api.onOpenSettings(openSettings);                       // macOS menu: Settings… (Cmd+,)
+window.addEventListener('keydown', (e) => {             // Windows / Linux (and a fallback on macOS)
+  if (e.key === ',' && (isMac ? e.metaKey : e.ctrlKey) && !e.altKey && !e.shiftKey) { e.preventDefault(); openSettings(); }
+});
+applyTheme(S.theme);
 
 // ---------- derived UI ----------
 let freeCache = {};

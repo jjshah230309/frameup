@@ -8,6 +8,9 @@ const on = (channel) => (cb) => {
 };
 
 contextBridge.exposeInMainWorld('frameup', {
+  theme: ipcRenderer.sendSync('settings:theme'),
+  setTheme: (t) => ipcRenderer.invoke('theme:set', t),
+  onOpenSettings: on('settings:open'),
   settings: { get: () => ipcRenderer.invoke('settings:get'), set: (p) => ipcRenderer.invoke('settings:set', p) },
   toolsStatus: () => ipcRenderer.invoke('tools:status'),
   installTool: (name) => ipcRenderer.invoke('tools:install', name),

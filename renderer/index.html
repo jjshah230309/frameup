@@ -5,12 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
 <title>FrameUp</title>
+<script src="theme-init.js"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><span class="brand-name">FrameUp</span></div>
-  <button class="pill" id="toolsBtn" title="Manage tools"><span class="dot" id="toolsDot"></span><span id="toolsLabel">Tools</span></button>
+  <div class="row gap">
+    <button class="pill" id="settingsBtn" title="Settings"><span id="settingsLabel">Settings</span></button>
+    <button class="pill" id="toolsBtn" title="Manage tools"><span class="dot" id="toolsDot"></span><span id="toolsLabel">Tools</span></button>
+  </div>
 </header>
 <div class="sidelabel" aria-hidden="true">FrameUp 1-Model</div>
 
@@ -19,7 +23,7 @@
   <section id="view-setup" class="view">
     <div class="hero">
       <div class="tagline">Upscale · Interpolate · Encode</div>
-      <h1>Sharper pixels,<br>smoother motion.</h1>
+      <h1>Sharper pixels<br>smoother motion.</h1>
       <p class="lede">Point it at a video. It upscales, adds the in-between frames and encodes the result, all in one pass.</p>
     </div>
     <div class="card" id="cardSource">
@@ -136,6 +140,19 @@
   </section>
   <footer class="credits">Built on <a href="https://github.com/upscayl/upscayl" target="_blank" rel="noreferrer">Upscayl</a> · <a href="https://github.com/nihui/rife-ncnn-vulkan" target="_blank" rel="noreferrer">RIFE</a> · ffmpeg</footer>
 </main>
+
+<!-- Settings dialog -->
+<dialog id="settingsDlg">
+  <div class="dlg-head"><h3>Settings</h3><button class="btn ghost small" id="settingsClose">Close</button></div>
+  <div class="setrow">
+    <div class="lbl">Appearance</div>
+    <div class="seg wide" id="themeSeg" role="radiogroup">
+      <button data-v="system">System</button><button data-v="light">Light</button><button data-v="dark">Dark</button>
+    </div>
+    <div class="hint">System follows your computer's light or dark setting. Saved automatically.</div>
+  </div>
+  <div class="hint">Open this window any time with <b id="settingsKeys">Ctrl+,</b>.</div>
+</dialog>
 
 <!-- Tools dialog -->
 <dialog id="toolsDlg">

@@ -1,5 +1,5 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, dialog, shell, powerSaveBlocker, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, powerSaveBlocker, nativeTheme, Menu } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { Tools } = require('./src/tools');
@@ -20,10 +20,10 @@ const writeSettings = (s) => { fs.mkdirSync(dataDir, { recursive: true }); fs.wr
 const send = (ch, payload) => { if (win && !win.isDestroyed()) win.webContents.send(ch, payload); };
 
 function createWindow() {
-  nativeTheme.themeSource = 'dark'; // the UI is a single dark editorial theme
+  nativeTheme.themeSource = U.normTheme(readSettings().theme);
   win = new BrowserWindow({
     width: 980, height: 820, minWidth: 760, minHeight: 640, show: false,
-    title: 'FrameUp', backgroundColor: '#100904',
+    title: 'FrameUp', backgroundColor: nativeTheme.shouldUseDarkColors ? '#100904' : '#fbf1e1',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
@@ -33,7 +33,22 @@ function createWindow() {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 }
 
+function buildMenu() {
+  // macOS keeps one app-wide menu, so give it the standard "Settings…" (Cmd+,) entry. Elsewhere the renderer handles Ctrl+,.
+  if (process.platform !== 'darwin') return;
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    { label: app.name, submenu: [
+      { role: 'about' }, { type: 'separator' },
+      { label: 'Settings…', accelerator: 'Command+,', click: () => send('settings:open') },
+      { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' },
+    ] },
+    { role: 'editMenu' },
+    { role: 'windowMenu' },
+  ]));
+}
+
 app.whenReady().then(() => {
+  buildMenu();
   createWindow();
   if (process.env.FRAMEUP_SCREENSHOTS) require('./scripts/screenshots')(win, process.env.FRAMEUP_SCREENSHOTS);
   if (process.env.FRAMEUP_E2E) require('./scripts/e2e')(win);
@@ -44,6 +59,8 @@ app.on('window-all-closed', () => { if (current) current.cancel(); app.quit(); }
 // ---------- IPC ----------
 ipcMain.handle('settings:get', () => ({ defaultTemp: path.join(dataDir, 'work'), ...readSettings() }));
 ipcMain.handle('settings:set', (_e, patch) => { const s = { ...readSettings(), ...patch }; writeSettings(s); return s; });
+ipcMain.on('settings:theme', (e) => { e.returnValue = U.normTheme(readSettings().theme); });   // read synchronously by the preload to avoid a flash
+ipcMain.handle('theme:set', (_e, t) => { nativeTheme.themeSource = U.normTheme(t); });
 ipcMain.handle('tools:status', () => tools.status());
 ipcMain.handle('tools:install', async (_e, name) => {
   await tools.install(name, (done, total, label) => send('tools:progress', { name, done, total, label }));

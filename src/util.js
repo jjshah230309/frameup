@@ -89,4 +89,7 @@ function normEncoderMode(v) {
   throw new Error(`Invalid encoder mode "${v}" (use auto, gpu or cpu).`);
 }
 
-module.exports = { normDevice, ncnnDeviceArgs, normEncoderMode, naturalSort, fmtTime, parseFps, isWhole, targetFrames, bitrateFor, planStages, overallPercent, outputBaseName, uniquePath, isImage };
+// Appearance: 'dark' (default) | 'light' | 'system'
+const normTheme = (v) => (['dark', 'light', 'system'].includes(v) ? v : 'dark');
+
+module.exports = { normTheme, normDevice, ncnnDeviceArgs, normEncoderMode, naturalSort, fmtTime, parseFps, isWhole, targetFrames, bitrateFor, planStages, overallPercent, outputBaseName, uniquePath, isImage };
