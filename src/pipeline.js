@@ -125,6 +125,31 @@ class Pipeline extends EventEmitter {
     return { width: s.width, height: s.height, fps, frames: nb, duration: dur };
   }
 
+  async _hasAudio(file) {
+    const ffprobe = this.tools.ffmpeg().ffprobe;
+    try {
+      const out = await new Promise((resolve, reject) => execFile(ffprobe,
+        ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', file],
+        { windowsHide: true }, (e, so) => (e ? reject(e) : resolve(so))));
+      return out.trim().length > 0;
+    } catch { return false; }
+  }
+
+  // The engines only see frames, so the finished file is silent. Copy the source's audio back in
+  // (stream copy; re-encode to AAC if the codec can't live in MP4). Best effort: never fails the run.
+  async _muxAudio(ffmpeg, source, out) {
+    if (!(await this._hasAudio(source))) return;
+    const tmp = out.replace(/\.mp4$/i, '') + '.audio.mp4';
+    for (const audio of [['-c:a', 'copy'], ['-c:a', 'aac', '-b:a', '256k']]) {
+      this._check();
+      const r = await this._spawn(ffmpeg, ['-v', 'error', '-i', out, '-i', source, '-map', '0:v:0', '-map', '1:a', '-c:v', 'copy', ...audio, '-movflags', '+faststart', '-y', tmp]);
+      this._check();
+      if (r.code === 0) { await fsp.rename(tmp, out); this.log('Audio copied from the source.'); return; }
+      await fsp.rm(tmp, { force: true });
+    }
+    this.log('Could not copy the audio track; the output has no sound.');
+  }
+
   async _needSpace(bytes, what) {
     const free = await freeBytes(this.work);
     if (bytes * 1.05 > free) {
@@ -283,6 +308,8 @@ class Pipeline extends EventEmitter {
         si++;
         await encode(OUTF, M);
       }
+
+      if (o.kind === 'video') await this._muxAudio(FF.ffmpeg, o.input, out);
 
       let frames = null;
       try { frames = (await this._probe(out)).frames; } catch { /* best effort */ }

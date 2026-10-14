@@ -18,6 +18,7 @@ Point it at a **video** (or a **folder of frames**) and it runs the whole pipeli
    * **Apple ML** (VideoToolbox frame-rate conversion, much faster, no big temp files) on macOS 15.4+
 4. **Encode** a high-quality 10-bit HEVC video using your GPU's hardware encoder
    (VideoToolbox / NVENC / AMF / QuickSync), falling back to x265 / x264
+5. **Audio** from a source video is copied into the result (stream copy, or AAC if the original codec doesn't fit in MP4). Not applicable to a folder of frames.
 
 A live progress view shows the current stage, `frames done / queued`, speed, ETA and overall progress. Cancelling is safe and temporary files are always cleaned up.
 
