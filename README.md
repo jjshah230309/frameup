@@ -28,7 +28,7 @@ Grab the installer for your system from the **[Releases](../../releases)** page:
 
 | OS | File |
 |----|------|
-| macOS (Apple silicon / Intel) | `FrameUp-<version>-arm64.dmg` / `-x64.dmg` |
+| macOS (Apple silicon and Intel, one file) | `FrameUp-<version>-universal.dmg` |
 | Windows | `FrameUp Setup <version>.exe` |
 | Linux | `FrameUp-<version>.AppImage` or `.deb` |
 
