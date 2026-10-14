@@ -49,7 +49,10 @@ function run(cmd, args, { timeout = 30000 } = {}) {
 }
 
 async function githubJson(url) {
-  const res = await fetch(url, { headers: { 'User-Agent': 'FrameUp', Accept: 'application/vnd.github+json' } });
+  // Unauthenticated API calls are rate limited per IP (60/h); use a token when one is provided (e.g. CI).
+  const headers = { 'User-Agent': 'FrameUp', Accept: 'application/vnd.github+json' };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  const res = await fetch(url, { headers });
   if (!res.ok) throw new Error(`GitHub request failed (${res.status})`);
   return res.json();
 }

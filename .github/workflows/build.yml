@@ -26,6 +26,8 @@ jobs:
       - run: npm test
       - name: Smoke test first-run downloads
         run: npm run smoke
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   package:
     name: Package (${{ matrix.os }})

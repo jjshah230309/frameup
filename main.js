@@ -20,9 +20,10 @@ const writeSettings = (s) => { fs.mkdirSync(dataDir, { recursive: true }); fs.wr
 const send = (ch, payload) => { if (win && !win.isDestroyed()) win.webContents.send(ch, payload); };
 
 function createWindow() {
+  nativeTheme.themeSource = 'dark'; // the UI is a single dark editorial theme
   win = new BrowserWindow({
     width: 980, height: 820, minWidth: 760, minHeight: 640, show: false,
-    title: 'FrameUp', backgroundColor: nativeTheme.shouldUseDarkColors ? '#14161a' : '#f6f7f9',
+    title: 'FrameUp', backgroundColor: '#100904',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });

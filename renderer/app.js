@@ -157,6 +157,7 @@ document.querySelectorAll('#upScale button').forEach((b) => b.addEventListener('
 document.querySelectorAll('#fpsMode button').forEach((b) => b.addEventListener('click', () => { S.fpsMode = b.dataset.v; seg('fpsMode', S.fpsMode); update(); }));
 document.querySelectorAll('#engine button').forEach((b) => b.addEventListener('click', () => { if (!b.disabled) { S.engine = b.dataset.v; seg('engine', S.engine); update(); } }));
 ['srcFps', 'customFps'].forEach((id) => $(id).addEventListener('input', update));
+document.querySelectorAll('.credits a').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); api.openExternal(a.href); }));
 $('toolsBtn').addEventListener('click', () => { renderToolsDialog(); $('toolsDlg').showModal(); });
 $('toolsClose').addEventListener('click', () => $('toolsDlg').close());
 
