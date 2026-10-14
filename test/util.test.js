@@ -67,3 +67,15 @@ test('isImage accepts frames and ignores macOS resource forks', () => {
   assert.ok(!U.isImage('._0001.png'));
   assert.ok(!U.isImage('notes.txt'));
 });
+
+test('device helpers map choices to ncnn flags and validate input', () => {
+  const U2 = require('../src/util');
+  assert.deepEqual(U2.ncnnDeviceArgs('auto'), []);
+  assert.deepEqual(U2.ncnnDeviceArgs(undefined), []);
+  assert.deepEqual(U2.ncnnDeviceArgs('gpu'), []);
+  assert.deepEqual(U2.ncnnDeviceArgs('CPU'), ['-g', '-1']);
+  assert.deepEqual(U2.ncnnDeviceArgs('1'), ['-g', '1']);
+  assert.throws(() => U2.normDevice('banana'));
+  assert.equal(U2.normEncoderMode('GPU'), 'gpu');
+  assert.throws(() => U2.normEncoderMode('1'));
+});

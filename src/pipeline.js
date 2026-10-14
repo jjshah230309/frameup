@@ -29,12 +29,15 @@ class Pipeline extends EventEmitter {
    *   kind: 'video' | 'frames', input, srcFps (frames only),
    *   upscale: { model, scale } | null,
    *   targetFps: number | null (null/equal => no interpolation), engine: 'rife' | 'apple',
-   *   outDir, workRoot
+   *   outDir, workRoot,
+   *   devices: { upscale, interpolate: 'auto'|'cpu'|'gpu'|<gpu index>, encode: 'auto'|'gpu'|'cpu' } (all optional)
    * }
    */
   constructor(opts, tools) {
     super();
     this.opts = opts;
+    const d = opts.devices || {};
+    this.dev = { upscale: U.normDevice(d.upscale), interpolate: U.normDevice(d.interpolate), encode: U.normEncoderMode(d.encode) };
     this.tools = tools;
     this.cancelled = false;
     this.child = null;
@@ -53,6 +56,8 @@ class Pipeline extends EventEmitter {
     this.cancelled = true;
     killTree(this.child);
   }
+
+  _devNote(d) { return d === 'cpu' ? ' · CPU' : /^\d+$/.test(d) ? ` · GPU ${d}` : ''; }
 
   _check() { if (this.cancelled) throw new Error('Cancelled'); }
 
@@ -118,6 +123,31 @@ class Pipeline extends EventEmitter {
     const dur = Number(j.format && j.format.duration) || 0;
     const nb = /^\d+$/.test(s.nb_frames || '') ? Number(s.nb_frames) : Math.round(dur * fps);
     return { width: s.width, height: s.height, fps, frames: nb, duration: dur };
+  }
+
+  async _hasAudio(file) {
+    const ffprobe = this.tools.ffmpeg().ffprobe;
+    try {
+      const out = await new Promise((resolve, reject) => execFile(ffprobe,
+        ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', file],
+        { windowsHide: true }, (e, so) => (e ? reject(e) : resolve(so))));
+      return out.trim().length > 0;
+    } catch { return false; }
+  }
+
+  // The engines only see frames, so the finished file is silent. Copy the source's audio back in
+  // (stream copy; re-encode to AAC if the codec can't live in MP4). Best effort: never fails the run.
+  async _muxAudio(ffmpeg, source, out) {
+    if (!(await this._hasAudio(source))) return;
+    const tmp = out.replace(/\.mp4$/i, '') + '.audio.mp4';
+    for (const audio of [['-c:a', 'copy'], ['-c:a', 'aac', '-b:a', '256k']]) {
+      this._check();
+      const r = await this._spawn(ffmpeg, ['-v', 'error', '-i', out, '-i', source, '-map', '0:v:0', '-map', '1:a', '-c:v', 'copy', ...audio, '-movflags', '+faststart', '-y', tmp]);
+      this._check();
+      if (r.code === 0) { await fsp.rename(tmp, out); this.log('Audio copied from the source.'); return; }
+      await fsp.rm(tmp, { force: true });
+    }
+    this.log('Could not copy the audio track; the output has no sound.');
   }
 
   async _needSpace(bytes, what) {
@@ -208,8 +238,8 @@ class Pipeline extends EventEmitter {
         await this._needSpace(fb * N * o.upscale.scale * o.upscale.scale * 0.8, 'upscaling');
         await fsp.mkdir(UP, { recursive: true });
         const native = (/(\d)x/.exec(o.upscale.model) || [null, '4'])[1];
-        this._begin(si, `Upscayl · ${o.upscale.model} · ${o.upscale.scale}x`, N);
-        const job = this._spawn(up.bin, ['-i', IN, '-o', UP, '-m', up.modelsDir, '-n', o.upscale.model, '-z', native, '-s', String(o.upscale.scale), '-f', 'png']);
+        this._begin(si, `Upscayl · ${o.upscale.model} · ${o.upscale.scale}x${this._devNote(this.dev.upscale)}`, N);
+        const job = this._spawn(up.bin, ['-i', IN, '-o', UP, '-m', up.modelsDir, '-n', o.upscale.model, '-z', native, '-s', String(o.upscale.scale), '-f', 'png', ...U.ncnnDeviceArgs(this.dev.upscale)]);
         const r = await this._watch(job, () => this._countDir(UP));
         this._check();
         if (r.code !== 0) throw new Error(`Upscayl failed:\n${r.tail}`);
@@ -232,7 +262,7 @@ class Pipeline extends EventEmitter {
       const out = U.uniquePath(o.outDir, U.outputBaseName({ name, upscale: o.upscale, interpolate, engine: o.engine, fps: Number.isInteger(outFps) ? outFps : outFps.toFixed(3) }), '.mp4');
 
       const encode = async (dir, count) => {
-        const enc = await t.pickEncoder(FF.ffmpeg);
+        const enc = await t.pickEncoder(FF.ffmpeg, this.dev.encode);
         this._begin(si, `${enc.label} · ${(br / 1e6).toFixed(0)} Mbps · ${outFps} fps`, count);
         const stats = { frame: 0 };
         const job = this._spawn(FF.ffmpeg, ['-v', 'error', '-nostats', '-progress', 'pipe:1', '-framerate', String(outFps), '-i', path.join(dir, `%08d${PNG_EXT}`),
@@ -263,9 +293,10 @@ class Pipeline extends EventEmitter {
         const rife = t.rife();
         await this._needSpace(fb * M * 1.1, 'RIFE');
         await fsp.mkdir(OUTF, { recursive: true });
-        this._begin(si, `RIFE · ${srcFps} → ${outFps} fps · ${W}×${H}`, M);
+        this._begin(si, `RIFE · ${srcFps} → ${outFps} fps · ${W}×${H}${this._devNote(this.dev.interpolate)}`, M);
         const args = ['-i', CUR, '-o', OUTF, '-m', rife.modelDir, '-n', String(M), '-f', '%08d.png'];
         if (W >= 2560) args.push('-u');
+        args.push(...U.ncnnDeviceArgs(this.dev.interpolate));
         const job = this._spawn(rife.bin, args);
         const r = await this._watch(job, () => this._countDir(OUTF));
         this._check();
@@ -277,6 +308,8 @@ class Pipeline extends EventEmitter {
         si++;
         await encode(OUTF, M);
       }
+
+      if (o.kind === 'video') await this._muxAudio(FF.ffmpeg, o.input, out);
 
       let frames = null;
       try { frames = (await this._probe(out)).frames; } catch { /* best effort */ }

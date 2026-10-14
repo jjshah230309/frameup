@@ -61,3 +61,19 @@ test('pickEncoder finds a working encoder with a real ffmpeg', async (t) => {
     assert.ok(enc.name && typeof enc.args === 'function');
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('encoder modes partition hardware and software candidates', () => {
+  const c = encoderCandidates();
+  assert.ok(c.filter((e) => e.hardware).length >= 1);
+  assert.ok(c.filter((e) => !e.hardware).every((e) => e.name.startsWith('libx26')));
+});
+
+test('pickEncoder honours cpu mode with a real ffmpeg', async (t) => {
+  const ff = which(process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+  if (!ff) return t.skip('ffmpeg not on PATH');
+  const { dir, tools } = mk();
+  try {
+    const enc = await tools.pickEncoder(ff, 'cpu');
+    assert.equal(enc.hardware, false);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});

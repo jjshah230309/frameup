@@ -18,6 +18,7 @@ Point it at a **video** (or a **folder of frames**) and it runs the whole pipeli
    * **Apple ML** (VideoToolbox frame-rate conversion, much faster, no big temp files) on macOS 15.4+
 4. **Encode** a high-quality 10-bit HEVC video using your GPU's hardware encoder
    (VideoToolbox / NVENC / AMF / QuickSync), falling back to x265 / x264
+5. **Audio** from a source video is copied into the result (stream copy, or AAC if the original codec doesn't fit in MP4). Not applicable to a folder of frames.
 
 A live progress view shows the current stage, `frames done / queued`, speed, ETA and overall progress. Cancelling is safe and temporary files are always cleaned up.
 
@@ -61,6 +62,16 @@ node src/cli.js "My Video.mp4" --upscale upscayl-standard-4x --scale 2 --fps 60 
 node src/cli.js ./frames --src-fps 24 --fps 48            # folder of frames, interpolate only
 node src/cli.js --list-models
 ```
+
+**GPU / CPU per stage.** In the app: *Advanced → Processing device* (saved in settings). On the CLI:
+
+```bash
+node src/cli.js clip.mp4 --upscale upscayl-standard-4x --fps 60 --device cpu      # everything on CPU
+node src/cli.js clip.mp4 --upscale upscayl-standard-4x --fps 60 \
+  --upscale-device 1 --interp-device gpu --encoder cpu                            # mix per stage
+```
+
+Upscale / interpolate accept `auto`, `gpu`, `cpu` or a GPU number; the encoder accepts `auto`, `gpu` (hardware only) or `cpu` (x265/x264). Apple ML chooses its own hardware.
 
 ## Develop
 ```bash

@@ -18,7 +18,7 @@ module.exports = (win, outDir) => {
 
   win.webContents.once('did-finish-load', async () => {
     try {
-      const theme = process.env.FRAMEUP_THEME || 'light';
+      const theme = process.env.FRAMEUP_THEME || 'dark';
       nativeTheme.themeSource = theme;
       await sleep(1200);
       win.setSize(980, 1280);
