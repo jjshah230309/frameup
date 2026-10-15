@@ -159,6 +159,20 @@
     <select id="devPreset"><option value="auto">Automatic (GPU where available)</option><option value="gpu">Everything on the GPU</option><option value="cpu">Everything on the CPU</option><option value="custom">Custom (set per stage on the main screen)</option></select>
     <div class="hint" id="devHint"></div>
   </div>
+  <div class="setrow">
+    <div class="lbl">Keep the computer awake</div>
+    <select id="awakeMode">
+      <option value="system">While working (the screen may turn off)</option>
+      <option value="display">While working, and keep the screen on</option>
+      <option value="off">Don't prevent sleep</option>
+    </select>
+    <div class="row between gap optrow">
+      <label for="awakeLid" class="grow">Also stay awake with the lid closed</label>
+      <label class="switch"><input type="checkbox" id="awakeLid"><span class="slider"></span></label>
+    </div>
+    <div class="hint" id="awakeHint"></div>
+    <div class="hint warnnote hidden" id="awakeLeftover">An earlier run left “sleep with the lid closed” turned off on this Mac. <button class="btn small" id="awakeRestore">Turn normal sleep back on</button></div>
+  </div>
   <div class="hint">Open this window any time with <b id="settingsKeys">Ctrl+,</b>.</div>
 </dialog>
 

@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { Tools } = require('./src/tools');
 const { Pipeline } = require('./src/pipeline');
+const { Awake } = require('./src/awake');
 const U = require('./src/util');
 
 const dataDir = process.env.FRAMEUP_DATA || app.getPath('userData');
@@ -14,10 +15,12 @@ const settingsFile = path.join(dataDir, 'settings.json');
 let win = null;
 let current = null;      // active Pipeline
 let blocker = null;
+let awakeLeftover = {};   // sleep settings a previous run left changed (see Awake.leftovers)
 
 const readSettings = () => { try { return JSON.parse(fs.readFileSync(settingsFile, 'utf8')); } catch { return {}; } };
 const writeSettings = (s) => { fs.mkdirSync(dataDir, { recursive: true }); fs.writeFileSync(settingsFile, JSON.stringify(s, null, 2)); };
 const send = (ch, payload) => { if (win && !win.isDestroyed()) win.webContents.send(ch, payload); };
+const awake = new Awake({ dataDir, log: (l) => send('run:log', l) });
 
 function createWindow() {
   nativeTheme.themeSource = U.normTheme(readSettings().theme);
@@ -50,16 +53,20 @@ function buildMenu() {
 app.whenReady().then(() => {
   buildMenu();
   createWindow();
+  awake.leftovers().then((r) => { awakeLeftover = r; if (r.macNeedsRestore) send('awake:leftover', r); }).catch(() => {});
   if (process.env.FRAMEUP_SCREENSHOTS) require('./scripts/screenshots')(win, process.env.FRAMEUP_SCREENSHOTS);
   if (process.env.FRAMEUP_E2E) require('./scripts/e2e')(win);
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
+app.on('before-quit', () => { awake.stop().catch(() => {}); });
 app.on('window-all-closed', () => { if (current) current.cancel(); app.quit(); });
 
 // ---------- IPC ----------
 ipcMain.handle('settings:get', () => ({ defaultTemp: path.join(dataDir, 'work'), ...readSettings() }));
 ipcMain.handle('settings:set', (_e, patch) => { const s = { ...readSettings(), ...patch }; writeSettings(s); return s; });
 ipcMain.on('settings:theme', (e) => { e.returnValue = U.normTheme(readSettings().theme); });   // read synchronously by the preload to avoid a flash
+ipcMain.handle('awake:status', () => awakeLeftover);
+ipcMain.handle('awake:restore', async () => { const ok = await awake.macRestore(); if (ok) awakeLeftover = {}; return ok; });
 ipcMain.handle('theme:set', (_e, t) => { nativeTheme.themeSource = U.normTheme(t); });
 ipcMain.handle('tools:status', () => tools.status());
 ipcMain.handle('tools:install', async (_e, name) => {
@@ -107,10 +114,12 @@ ipcMain.handle('run', async (_e, opts) => {
   const workRoot = opts.workRoot || settings.workRoot || path.join(dataDir, 'work');
   fs.mkdirSync(workRoot, { recursive: true });
   current = new Pipeline({ ...opts, workRoot }, tools);
-  blocker = powerSaveBlocker.start('prevent-app-suspension');
+  const awakeMode = U.normAwake(settings.awake), awakeLid = !!settings.awakeLid;
+  if (awakeMode !== 'off' || awakeLid) blocker = powerSaveBlocker.start(awakeMode === 'display' ? 'prevent-display-sleep' : 'prevent-app-suspension');
   current.on('progress', (p) => { send('run:progress', p); win && !win.isDestroyed() && win.setProgressBar(p.overallPct / 100); });
   current.on('log', (l) => send('run:log', l));
   try {
+    for (const w of await awake.start({ mode: awakeMode, lid: awakeLid })) send('run:log', `Warning: ${w}`);
     const r = await current.run();
     send('run:done', r);
     return r;
@@ -119,6 +128,7 @@ ipcMain.handle('run', async (_e, opts) => {
     return null;
   } finally {
     if (blocker !== null) powerSaveBlocker.stop(blocker);
+    await awake.stop();
     blocker = null; current = null;
     if (win && !win.isDestroyed()) win.setProgressBar(-1);
   }

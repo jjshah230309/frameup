@@ -95,3 +95,11 @@ test('TTA maps to the -x flag only when enabled', () => {
   assert.deepEqual(U2.ttaArgs(false), []);
   assert.deepEqual(U2.ttaArgs(undefined), []);
 });
+
+test('keep-awake mode names are validated and default to system', () => {
+  const U2 = require('../src/util');
+  assert.equal(U2.normAwake('display'), 'display');
+  assert.equal(U2.normAwake('off'), 'off');
+  assert.equal(U2.normAwake(undefined), 'system');
+  assert.equal(U2.normAwake('always'), 'system');
+});

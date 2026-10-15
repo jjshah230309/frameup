@@ -156,6 +156,7 @@ select { width: 100%; } input[type=number] { width: 90px; }
 
 /* tools dialog */
 dialog { border: 1px solid var(--line); border-radius: var(--r-card); background: var(--bg); color: var(--fg); padding: 24px; width: min(580px, 92vw); font: inherit; text-transform: uppercase; }
+dialog { max-height: 90vh; overflow-y: auto; }
 dialog::backdrop { background: var(--scrim); }
 .dlg-head { display: flex; justify-content: space-between; align-items: center; } .dlg-head h3 { margin: 0; font-size: 24px; font-weight: 500; line-height: 1.09; }
 dialog p.muted { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 15px; line-height: 1.4; }
