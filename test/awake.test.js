@@ -48,6 +48,10 @@ test('macOS lid command is built safely', () => {
   assert.match(cmd, /^\/usr\/bin\/pmset -a disablesleep 1; \( while \/bin\/kill -0 123 /);
   assert.match(cmd, /disablesleep 0 \) >\/dev\/null 2>&1 &$/);
   assert.throws(() => macLidCommand(123, "/tmp/x'; rm -rf ~; '"));
+  assert.throws(() => macLidCommand(123, '/tmp/x\nrm -rf ~'));
+  // spaces, accents and shell characters are fine inside single quotes (and a Windows-style path, as used when tests simulate macOS there)
+  assert.match(macLidCommand(1, '/Users/José (work)/Library/Application Support/a$b&c.flag'), /\[ -e '\/Users\/José \(work\)\/Library\/Application Support\/a\$b&c\.flag' \]/);
+  assert.doesNotThrow(() => macLidCommand(1, 'C:\\Users\\runner\\AppData\\Local\\Temp\\fu-awake-x\\awake-lid.flag'));
   assert.throws(() => macLidCommand('1; reboot', '/tmp/ok.flag'));
   const [e, script] = osascriptAdmin('echo "hi" \\ x', 'Say "hi"');
   assert.equal(e, '-e');

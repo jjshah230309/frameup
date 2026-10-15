@@ -54,11 +54,12 @@ function parseSleepDisabled(text) {
   return m ? Number(m[1]) : 0;
 }
 
-const SAFE_PATH = /^[A-Za-z0-9_\-./ ]+$/;
+// The path goes inside single quotes in a root shell command: only a quote (or a control character) can break out of that.
+const UNSAFE_PATH = /['\u0000-\u001f\u007f]/;
 
 // Root shell snippet: disable sleep, then (in the background) restore it once `pid` is gone or the flag file is deleted.
 function macLidCommand(pid, flagFile) {
-  if (!SAFE_PATH.test(flagFile)) throw new Error('Unsafe path for the sleep flag file.');
+  if (!flagFile || UNSAFE_PATH.test(flagFile)) throw new Error('Unsafe path for the sleep flag file.');
   const p = Number(pid);
   if (!Number.isInteger(p) || p <= 0) throw new Error('Bad process id.');
   return `/usr/bin/pmset -a disablesleep 1; ( while /bin/kill -0 ${p} 2>/dev/null && [ -e '${flagFile}' ]; do /bin/sleep 2; done; /usr/bin/pmset -a disablesleep 0 ) >/dev/null 2>&1 &`;
