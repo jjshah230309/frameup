@@ -1,7 +1,7 @@
 {
   "name": "frameup",
   "productName": "FrameUp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Upscale video with Upscayl and add silky-smooth frames with RIFE or Apple ML.",
   "main": "main.js",
   "license": "MIT",

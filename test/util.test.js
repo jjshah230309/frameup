@@ -88,3 +88,10 @@ test('theme names are validated and default to dark', () => {
   assert.equal(U2.normTheme(undefined), 'dark');
   assert.equal(U2.normTheme('sepia'), 'dark');
 });
+
+test('TTA maps to the -x flag only when enabled', () => {
+  const U2 = require('../src/util');
+  assert.deepEqual(U2.ttaArgs(true), ['-x']);
+  assert.deepEqual(U2.ttaArgs(false), []);
+  assert.deepEqual(U2.ttaArgs(undefined), []);
+});

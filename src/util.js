@@ -83,6 +83,8 @@ function ncnnDeviceArgs(v) {
   if (/^\d+$/.test(d)) return ['-g', d];
   return []; // auto / gpu: let the tool pick (it uses the GPU by default)
 }
+// TTA (test-time augmentation): -x on both Upscayl and RIFE (spatial TTA for RIFE).
+const ttaArgs = (on) => (on ? ['-x'] : []);
 function normEncoderMode(v) {
   const s = String(v == null ? 'auto' : v).trim().toLowerCase();
   if (['auto', 'gpu', 'cpu'].includes(s)) return s;
@@ -92,4 +94,4 @@ function normEncoderMode(v) {
 // Appearance: 'dark' (default) | 'light' | 'system'
 const normTheme = (v) => (['dark', 'light', 'system'].includes(v) ? v : 'dark');
 
-module.exports = { normTheme, normDevice, ncnnDeviceArgs, normEncoderMode, naturalSort, fmtTime, parseFps, isWhole, targetFrames, bitrateFor, planStages, overallPercent, outputBaseName, uniquePath, isImage };
+module.exports = { ttaArgs, normTheme, normDevice, ncnnDeviceArgs, normEncoderMode, naturalSort, fmtTime, parseFps, isWhole, targetFrames, bitrateFor, planStages, overallPercent, outputBaseName, uniquePath, isImage };
