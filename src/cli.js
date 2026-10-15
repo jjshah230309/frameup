@@ -20,6 +20,8 @@ function usage() {
   --upscale-device <d>  auto | cpu | gpu | <GPU number>                  [default: auto]
   --interp-device <d>   auto | cpu | gpu | <GPU number>  (RIFE)          [default: auto]
   --encoder <m>         auto | gpu | cpu  (HEVC hardware vs x265/x264)   [default: auto]
+  --upscale-tta         Upscayl TTA mode (slower, slightly cleaner)
+  --interp-tta          RIFE spatial TTA mode (slower, a little smoother)
   --device <d>          shortcut: gpu or cpu for all three stages above
   --list-models         Show installed Upscayl models and exit`);
 }
@@ -47,6 +49,7 @@ async function main() {
     kind: isDir ? 'frames' : 'video', input: path.resolve(input), srcFps: Number(get('--src-fps', 25)),
     upscale: model ? { model, scale: Number(get('--scale', 2)) } : null,
     targetFps: fps ? Number(fps) : null, engine: get('--engine', 'rife'),
+    tta: { upscale: argv.includes('--upscale-tta'), interpolate: argv.includes('--interp-tta') },
     devices: { upscale: get('--upscale-device', dev), interpolate: get('--interp-device', dev), encode: get('--encoder', encAll) },
     outDir: path.resolve(get('--out', path.dirname(path.resolve(input)))), workRoot: get('--temp', os.tmpdir()),
   };

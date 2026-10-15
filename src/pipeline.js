@@ -30,6 +30,7 @@ class Pipeline extends EventEmitter {
    *   upscale: { model, scale } | null,
    *   targetFps: number | null (null/equal => no interpolation), engine: 'rife' | 'apple',
    *   outDir, workRoot,
+   *   tta: { upscale, interpolate: boolean } (optional),
    *   devices: { upscale, interpolate: 'auto'|'cpu'|'gpu'|<gpu index>, encode: 'auto'|'gpu'|'cpu' } (all optional)
    * }
    */
@@ -37,6 +38,8 @@ class Pipeline extends EventEmitter {
     super();
     this.opts = opts;
     const d = opts.devices || {};
+    const t = opts.tta || {};
+    this.tta = { upscale: !!t.upscale, interpolate: !!t.interpolate };
     this.dev = { upscale: U.normDevice(d.upscale), interpolate: U.normDevice(d.interpolate), encode: U.normEncoderMode(d.encode) };
     this.tools = tools;
     this.cancelled = false;
@@ -238,8 +241,8 @@ class Pipeline extends EventEmitter {
         await this._needSpace(fb * N * o.upscale.scale * o.upscale.scale * 0.8, 'upscaling');
         await fsp.mkdir(UP, { recursive: true });
         const native = (/(\d)x/.exec(o.upscale.model) || [null, '4'])[1];
-        this._begin(si, `Upscayl · ${o.upscale.model} · ${o.upscale.scale}x${this._devNote(this.dev.upscale)}`, N);
-        const job = this._spawn(up.bin, ['-i', IN, '-o', UP, '-m', up.modelsDir, '-n', o.upscale.model, '-z', native, '-s', String(o.upscale.scale), '-f', 'png', ...U.ncnnDeviceArgs(this.dev.upscale)]);
+        this._begin(si, `Upscayl · ${o.upscale.model} · ${o.upscale.scale}x${this._devNote(this.dev.upscale)}${this.tta.upscale ? ' · TTA' : ''}`, N);
+        const job = this._spawn(up.bin, ['-i', IN, '-o', UP, '-m', up.modelsDir, '-n', o.upscale.model, '-z', native, '-s', String(o.upscale.scale), '-f', 'png', ...U.ncnnDeviceArgs(this.dev.upscale), ...U.ttaArgs(this.tta.upscale)]);
         const r = await this._watch(job, () => this._countDir(UP));
         this._check();
         if (r.code !== 0) throw new Error(`Upscayl failed:\n${r.tail}`);
@@ -293,10 +296,10 @@ class Pipeline extends EventEmitter {
         const rife = t.rife();
         await this._needSpace(fb * M * 1.1, 'RIFE');
         await fsp.mkdir(OUTF, { recursive: true });
-        this._begin(si, `RIFE · ${srcFps} → ${outFps} fps · ${W}×${H}${this._devNote(this.dev.interpolate)}`, M);
+        this._begin(si, `RIFE · ${srcFps} → ${outFps} fps · ${W}×${H}${this._devNote(this.dev.interpolate)}${this.tta.interpolate ? ' · TTA' : ''}`, M);
         const args = ['-i', CUR, '-o', OUTF, '-m', rife.modelDir, '-n', String(M), '-f', '%08d.png'];
         if (W >= 2560) args.push('-u');
-        args.push(...U.ncnnDeviceArgs(this.dev.interpolate));
+        args.push(...U.ncnnDeviceArgs(this.dev.interpolate), ...U.ttaArgs(this.tta.interpolate));
         const job = this._spawn(rife.bin, args);
         const r = await this._watch(job, () => this._countDir(OUTF));
         this._check();

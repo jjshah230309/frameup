@@ -91,8 +91,6 @@ button, .btn, .pill, .seg button, summary { letter-spacing: inherit; }
 select, input[type=number] { letter-spacing: 0; font: inherit; text-transform: none; color: var(--fg); background: transparent; border: 0; border-bottom: 1px solid var(--fg); border-radius: 0; padding: 4px 2px; }
 select option { background: var(--bg); color: var(--fg); }
 select { width: 100%; } input[type=number] { width: 90px; }
-.devs { margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--line); }
-.devgrid { display: grid; grid-template-columns: 96px 1fr; gap: 12px 18px; align-items: center; margin-top: 14px; }
 .seg { display: inline-flex; gap: 6px; }
 .seg.wide { display: flex; } .seg.wide button { flex: 1; }
 .seg button { font: inherit; text-transform: uppercase; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: var(--r-ghost); padding: 7.5px 18px; cursor: pointer; }
@@ -145,6 +143,12 @@ select { width: 100%; } input[type=number] { width: 90px; }
 /* credits: the one place the accent appears */
 .credits { margin-top: 40px; padding-top: 18px; border-top: 1px dashed var(--line); color: var(--ember); font-size: 11.5px; letter-spacing: .06em; }
 .credits a { text-decoration: none; border-bottom: 1px dashed currentColor; }
+
+/* device / TTA rows */
+.optrow { margin-top: 18px; } .optrow .switch { display: block; margin-top: 2px; }
+.encrow { margin-top: 18px; }
+.warnnote { color: var(--fg); border-left: 2px solid var(--fg); padding-left: 10px; }
+#rifeOpts { margin-top: 6px; }
 
 /* settings dialog */
 .setrow { margin: 18px 0; } .setrow .hint { margin-top: 12px; }

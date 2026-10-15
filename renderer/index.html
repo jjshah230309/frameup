@@ -53,7 +53,13 @@
           <div><label class="lbl">Factor</label>
             <div class="seg" id="upScale" role="radiogroup"><button data-v="2" class="on">2×</button><button data-v="3">3×</button><button data-v="4">4×</button></div></div>
         </div>
+        <div class="grid2 optrow">
+          <div><label class="lbl" for="devUp">Run on</label><select id="devUp"><option value="auto">Auto</option><option value="gpu">GPU (default)</option><option value="0">GPU 0</option><option value="1">GPU 1</option><option value="2">GPU 2</option><option value="cpu">CPU (very slow)</option></select></div>
+          <div><label class="lbl" for="ttaUp">TTA mode</label><label class="switch"><input type="checkbox" id="ttaUp"><span class="slider"></span></label></div>
+        </div>
+        <div class="hint warnnote hidden" id="devUpNote"></div>
         <div class="hint" id="upHint"></div>
+        <div class="hint">TTA (test-time augmentation) upscales each frame several times, flipped and rotated, and blends the results: slightly cleaner, but several times slower.</div>
       </div>
     </div>
 
@@ -67,6 +73,14 @@
         <label class="lbl">Interpolation engine</label>
         <div class="seg wide" id="engine" role="radiogroup"><button data-v="rife" class="on">RIFE (AI)</button><button data-v="apple" id="appleBtn">Apple ML</button></div>
         <div class="hint" id="engineHint"></div>
+        <div id="rifeOpts">
+          <div class="grid2 optrow">
+            <div><label class="lbl" for="devInterp">RIFE runs on</label><select id="devInterp"><option value="auto">Auto</option><option value="gpu">GPU (default)</option><option value="0">GPU 0</option><option value="1">GPU 1</option><option value="2">GPU 2</option><option value="cpu">CPU (very slow)</option></select></div>
+            <div><label class="lbl" for="ttaInterp">TTA mode</label><label class="switch"><input type="checkbox" id="ttaInterp"><span class="slider"></span></label></div>
+          </div>
+          <div class="hint warnnote hidden" id="devInterpNote"></div>
+          <div class="hint">TTA makes RIFE estimate each new frame twice, mirrored, and blend them: a little smoother on fast motion, about twice as slow.</div>
+        </div>
       </div>
     </div>
 
@@ -76,25 +90,14 @@
         <div class="grow"><div class="lbl">Save to</div><div class="path" id="outPath">—</div></div>
         <button class="btn ghost" id="pickOut">Change…</button>
       </div>
+      <div class="optrow encrow"><label class="lbl" for="devEnc">Video encoder</label>
+        <select id="devEnc"><option value="auto">Auto (GPU hardware encoder, else CPU)</option><option value="gpu">GPU hardware encoder only</option><option value="cpu">CPU (x265 / x264)</option></select></div>
+      <div class="hint warnnote hidden" id="devEncNote"></div>
       <div class="summary hidden" id="summary"></div>
       <details class="adv"><summary>Advanced</summary>
         <div class="row between gap">
           <div class="grow"><div class="lbl">Temporary folder <span class="muted">(frames live here while working)</span></div><div class="path" id="tmpPath">—</div><div class="hint" id="tmpHint"></div></div>
           <button class="btn ghost" id="pickTmp">Change…</button>
-        </div>
-        <div class="devs">
-          <div class="lbl">Processing device <span class="muted">(which parts run on the GPU or CPU)</span></div>
-          <div class="row gap"><label for="devPreset">Preset</label>
-            <select id="devPreset"><option value="auto">Automatic (GPU where available)</option><option value="gpu">All on GPU</option><option value="cpu">All on CPU</option><option value="custom">Custom (per stage)</option></select></div>
-          <div class="devgrid" id="devGrid">
-            <label for="devUp">Upscale</label>
-            <select id="devUp"><option value="auto">Auto</option><option value="gpu">GPU (default)</option><option value="0">GPU 0</option><option value="1">GPU 1</option><option value="2">GPU 2</option><option value="cpu">CPU (very slow)</option></select>
-            <label for="devInterp">Interpolate</label>
-            <select id="devInterp"><option value="auto">Auto</option><option value="gpu">GPU (default)</option><option value="0">GPU 0</option><option value="1">GPU 1</option><option value="2">GPU 2</option><option value="cpu">CPU (very slow)</option></select>
-            <label for="devEnc">Encode</label>
-            <select id="devEnc"><option value="auto">Auto (hardware, else CPU)</option><option value="gpu">GPU hardware encoder only</option><option value="cpu">CPU (x265 / x264)</option></select>
-          </div>
-          <div class="hint" id="devHint"></div>
         </div>
       </details>
     </div>
@@ -150,6 +153,11 @@
       <button data-v="system">System</button><button data-v="light">Light</button><button data-v="dark">Dark</button>
     </div>
     <div class="hint">System follows your computer's light or dark setting. Saved automatically.</div>
+  </div>
+  <div class="setrow">
+    <div class="lbl">Processing device</div>
+    <select id="devPreset"><option value="auto">Automatic (GPU where available)</option><option value="gpu">Everything on the GPU</option><option value="cpu">Everything on the CPU</option><option value="custom">Custom (set per stage on the main screen)</option></select>
+    <div class="hint" id="devHint"></div>
   </div>
   <div class="hint">Open this window any time with <b id="settingsKeys">Ctrl+,</b>.</div>
 </dialog>

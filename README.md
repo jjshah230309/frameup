@@ -65,13 +65,15 @@ node src/cli.js ./frames --src-fps 24 --fps 48            # folder of frames, in
 node src/cli.js --list-models
 ```
 
-**GPU / CPU per stage.** In the app: *Advanced → Processing device* (saved in settings). On the CLI:
+**GPU / CPU and TTA per stage.** In the app, each card has a *Run on* menu (GPU, a specific GPU, or CPU) and a *TTA mode* switch for Upscale and for RIFE, and the Output card has a *Video encoder* menu; *Settings* has an everything-on-GPU / everything-on-CPU preset. Choices are remembered. On the CLI:
 
 ```bash
 node src/cli.js clip.mp4 --upscale upscayl-standard-4x --fps 60 --device cpu      # everything on CPU
 node src/cli.js clip.mp4 --upscale upscayl-standard-4x --fps 60 \
   --upscale-device 1 --interp-device gpu --encoder cpu                            # mix per stage
 ```
+
+Add `--upscale-tta` and/or `--interp-tta` for TTA (test-time augmentation: slower, slightly better quality).
 
 Upscale / interpolate accept `auto`, `gpu`, `cpu` or a GPU number; the encoder accepts `auto`, `gpu` (hardware only) or `cpu` (x265/x264). Apple ML chooses its own hardware.
 

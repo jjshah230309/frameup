@@ -15,6 +15,7 @@ const S = {
   upOn: true, upScale: 2, upModel: 'upscayl-standard-4x',
   fpsMode: '60', customFps: 48, engine: 'rife',
   devices: { upscale: 'auto', interpolate: 'auto', encode: 'auto' },
+  tta: { upscale: false, interpolate: false },
   theme: document.documentElement.dataset.theme || 'dark',
   running: false,
 };
@@ -173,7 +174,14 @@ function devPresetOf(d) {
 function renderDevices() {
   for (const k in DEV_IDS) $(DEV_IDS[k]).value = S.devices[k];
   $('devPreset').value = devPresetOf(S.devices);
-  $('devInterp').disabled = S.engine === 'apple';
+  const apple = S.engine === 'apple';
+  $('devInterp').disabled = apple; $('ttaInterp').disabled = apple;
+  $('ttaUp').checked = S.tta.upscale; $('ttaInterp').checked = S.tta.interpolate;
+  show('rifeOpts', !apple);
+  const note = (id, text) => { $(id).textContent = text || ''; show(id, !!text); };
+  note('devUpNote', S.devices.upscale === 'cpu' ? 'CPU upscaling can be many times slower than a GPU.' : '');
+  note('devInterpNote', S.devices.interpolate === 'cpu' ? 'CPU interpolation can be many times slower than a GPU.' : '');
+  note('devEncNote', S.devices.encode === 'cpu' ? 'The CPU encoder is slower, and falls back to 8-bit H.264 if x265 is missing.' : S.devices.encode === 'gpu' ? 'If no GPU hardware encoder works on this computer, the run stops with an error.' : '');
   const cpu = Object.values(S.devices).includes('cpu');
   $('devHint').textContent = (S.engine === 'apple' ? 'Apple ML picks its own hardware, so the Interpolate setting only applies to RIFE. ' : '')
     + (S.devices.upscale === 'cpu' || S.devices.interpolate === 'cpu' ? 'CPU upscaling and RIFE can be many times slower than a GPU. ' : '')
@@ -186,6 +194,9 @@ $('devPreset').addEventListener('change', () => {
   if (v === 'custom') return;
   setDevices({ upscale: v, interpolate: v, encode: v });
 });
+async function setTta(k, on) { S.tta = { ...S.tta, [k]: on }; await api.settings.set({ tta: S.tta }); renderDevices(); }
+$('ttaUp').addEventListener('change', () => setTta('upscale', $('ttaUp').checked));
+$('ttaInterp').addEventListener('change', () => setTta('interpolate', $('ttaInterp').checked));
 for (const k in DEV_IDS) $(DEV_IDS[k]).addEventListener('change', () => setDevices({ ...S.devices, [k]: $(DEV_IDS[k]).value }));
 
 // ---------- settings (appearance) ----------
@@ -327,7 +338,7 @@ $('start').addEventListener('click', async () => {
   const opts = {
     kind: S.source.kind, input: S.source.path, srcFps: srcFps(),
     upscale: S.upOn ? { model: S.upModel, scale: S.upScale } : null,
-    targetFps: tf, engine: S.engine, devices: { ...S.devices }, outDir: S.outDir, workRoot: S.workRoot || undefined,
+    targetFps: tf, engine: S.engine, devices: { ...S.devices }, tta: { upscale: S.upOn && S.tta.upscale, interpolate: S.tta.interpolate }, outDir: S.outDir, workRoot: S.workRoot || undefined,
   };
   S.running = true;
   $('log').textContent = ''; show('log', false); $('logToggle').textContent = 'Show details';
@@ -355,6 +366,7 @@ $('doneAgain').addEventListener('click', () => { view('setup'); update(); });
   S.settings = await api.settings.get();
   S.workRoot = S.settings.workRoot || null;
   S.devices = { ...S.devices, ...(S.settings.devices || {}) };
+  S.tta = { ...S.tta, ...(S.settings.tta || {}) };
   await refreshTools();
   update();
   window.__frameup = { S, onProgress, showDone, showFailed, setSource, update, view }; // used by screenshot script
