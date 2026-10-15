@@ -24,6 +24,7 @@ function usage() {
   --upscale-tta         Upscayl TTA mode (slower, slightly cleaner)
   --interp-tta          RIFE spatial TTA mode (slower, a little smoother)
   --keep-awake [m]      keep the computer awake while working: system | display | off  [default: off]
+  --screen-off          turn the screen off a few seconds after the run starts (the job keeps running)
   --stay-awake-lid      also stay awake with the lid closed (asks for admin rights on macOS)
   --device <d>          shortcut: gpu or cpu for all three stages above
   --list-models         Show installed Upscayl models and exit`);
@@ -84,7 +85,10 @@ async function main() {
   const awake = new Awake({ dataDir, log: (l) => { if (process.env.FRAMEUP_VERBOSE) console.error(`\n${l}`); } });
   try {
     for (const w of await awake.start({ mode: awakeMode, lid: argv.includes('--stay-awake-lid') })) console.error(`Warning: ${w}`);
-    const r = await p.run();
+    let screenTimer = null;
+    if (argv.includes('--screen-off') && awakeMode !== 'display') screenTimer = setTimeout(() => awake.displayOff().then((w) => w && console.error(`Warning: ${w}`)).catch(() => {}), 5000);
+    let r;
+    try { r = await p.run(); } finally { clearTimeout(screenTimer); }
     console.log(`\nDone: ${r.output}\n${r.frames ?? '?'} frames, ${r.width}x${r.height}, ${r.fps} fps, ${U.fmtTime(r.elapsed)}`);
   } catch (e) {
     console.error(`\n${e.message}`);

@@ -54,6 +54,25 @@ function parseSleepDisabled(text) {
   return m ? Number(m[1]) : 0;
 }
 
+// Commands that turn the display off right now while the computer keeps running; tried in order until one works.
+function displayOffCommands(platform, env = {}) {
+  if (platform === 'darwin') return [{ cmd: '/usr/bin/pmset', args: ['displaysleepnow'] }];
+  if (platform === 'win32') {
+    // WM_SYSCOMMAND / SC_MONITORPOWER (0xF170) with lParam 2 = monitor off, broadcast to all windows (HWND_BROADCAST = 0xFFFF)
+    const script = `Add-Type -Namespace FU -Name M -MemberDefinition '[DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, int m, IntPtr w, IntPtr l);'; ` +
+      `[void][FU.M]::PostMessage([IntPtr]0xFFFF, 0x0112, [IntPtr]0xF170, [IntPtr]2)`;
+    return [{ cmd: 'powershell.exe', args: ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script] }];
+  }
+  if (platform === 'linux') {
+    const xset = { cmd: 'xset', args: ['dpms', 'force', 'off'] };
+    const gnome = { cmd: 'gdbus', args: ['call', '--session', '--dest', 'org.gnome.Mutter.DisplayConfig', '--object-path', '/org/gnome/Mutter/DisplayConfig',
+      '--method', 'org.freedesktop.DBus.Properties.Set', 'org.gnome.Mutter.DisplayConfig', 'PowerSaveMode', '<int32 1>'] };
+    const kde = { cmd: 'qdbus', args: ['org.kde.kglobalaccel', '/component/org_kde_powerdevil', 'invokeShortcut', 'Turn Off Screen'] };
+    return env.XDG_SESSION_TYPE === 'x11' ? [xset, gnome, kde] : [gnome, kde, xset];
+  }
+  return [];
+}
+
 // The path goes inside single quotes in a root shell command: only a quote (or a control character) can break out of that.
 const UNSAFE_PATH = /['\u0000-\u001f\u007f]/;
 
@@ -169,6 +188,16 @@ class Awake {
     this.log('Lid-close setting restored.');
   }
 
+  // Turn the display off now (the job keeps running). Returns a warning string, or null when it worked.
+  async displayOff(env = process.env) {
+    const tries = displayOffCommands(this.platform, env);
+    for (const t of tries) {
+      const r = await this.exec(t.cmd, t.args, { timeout: 15000 });
+      if (r.code === 0) { this.log('Screen turned off; the job keeps running.'); return null; }
+    }
+    return tries.length ? "Couldn't turn the screen off on this system; it will stay on until it times out." : 'Turning the screen off is not supported here.';
+  }
+
   // Call once at launch. Windows: undo a lid change left behind by a crash. macOS: report one (it needs a password to undo).
   async leftovers() {
     if (this.platform === 'win32' && fs.existsSync(this.restoreFile)) {
@@ -191,4 +220,4 @@ class Awake {
   }
 }
 
-module.exports = { Awake, holderCommand, parseLidIndexes, parseSleepDisabled, macLidCommand, osascriptAdmin };
+module.exports = { Awake, displayOffCommands, holderCommand, parseLidIndexes, parseSleepDisabled, macLidCommand, osascriptAdmin };

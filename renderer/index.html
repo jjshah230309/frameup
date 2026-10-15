@@ -162,10 +162,15 @@
   <div class="setrow">
     <div class="lbl">Keep the computer awake</div>
     <select id="awakeMode">
-      <option value="system">While working (the screen may turn off)</option>
+      <option value="system">While working (works with the screen off)</option>
       <option value="display">While working, and keep the screen on</option>
       <option value="off">Don't prevent sleep</option>
     </select>
+    <div class="row between gap optrow">
+      <label for="screenOff" class="grow">Turn the screen off when a run starts</label>
+      <label class="switch"><input type="checkbox" id="screenOff"><span class="slider"></span></label>
+    </div>
+    <div class="hint" id="screenOffHint"></div>
     <div class="row between gap optrow">
       <label for="awakeLid" class="grow">Also stay awake with the lid closed</label>
       <label class="switch"><input type="checkbox" id="awakeLid"><span class="slider"></span></label>

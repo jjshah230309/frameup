@@ -15,6 +15,7 @@ const settingsFile = path.join(dataDir, 'settings.json');
 let win = null;
 let current = null;      // active Pipeline
 let blocker = null;
+let screenOffTimer = null;
 let awakeLeftover = {};   // sleep settings a previous run left changed (see Awake.leftovers)
 
 const readSettings = () => { try { return JSON.parse(fs.readFileSync(settingsFile, 'utf8')); } catch { return {}; } };
@@ -120,6 +121,9 @@ ipcMain.handle('run', async (_e, opts) => {
   current.on('log', (l) => send('run:log', l));
   try {
     for (const w of await awake.start({ mode: awakeMode, lid: awakeLid })) send('run:log', `Warning: ${w}`);
+    if (settings.screenOff && awakeMode !== 'display') {      // let the user see the run start, then turn the screen off
+      screenOffTimer = setTimeout(() => awake.displayOff().then((w) => w && send('run:log', `Warning: ${w}`)).catch(() => {}), 5000);
+    }
     const r = await current.run();
     send('run:done', r);
     return r;
@@ -127,6 +131,7 @@ ipcMain.handle('run', async (_e, opts) => {
     send('run:failed', { message: e.message, cancelled: e.message === 'Cancelled' });
     return null;
   } finally {
+    clearTimeout(screenOffTimer); screenOffTimer = null;
     if (blocker !== null) powerSaveBlocker.stop(blocker);
     await awake.stop();
     blocker = null; current = null;

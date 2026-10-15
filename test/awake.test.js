@@ -5,7 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { EventEmitter } = require('events');
-const { Awake, holderCommand, parseLidIndexes, parseSleepDisabled, macLidCommand, osascriptAdmin } = require('../src/awake');
+const { Awake, displayOffCommands, holderCommand, parseLidIndexes, parseSleepDisabled, macLidCommand, osascriptAdmin } = require('../src/awake');
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'fu-awake-'));
 const fakeSpawn = (calls) => (cmd, args) => { const c = new EventEmitter(); c.kill = () => { c.killed = true; }; c.unref = () => {}; calls.push({ cmd, args, c }); return c; };
@@ -137,4 +137,26 @@ test('off means nothing is started', async () => {
   assert.deepEqual(await a.start({ mode: 'off', lid: false }), []);
   assert.equal(spawns.length + execs.length, 0);
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('display-off commands per platform', () => {
+  assert.deepEqual(displayOffCommands('darwin'), [{ cmd: '/usr/bin/pmset', args: ['displaysleepnow'] }]);
+  const win = displayOffCommands('win32');
+  assert.equal(win[0].cmd, 'powershell.exe');
+  assert.match(win[0].args.at(-1), /PostMessage\(\[IntPtr\]0xFFFF, 0x0112, \[IntPtr\]0xF170, \[IntPtr\]2\)/);
+  assert.equal(displayOffCommands('linux', { XDG_SESSION_TYPE: 'x11' })[0].cmd, 'xset');
+  assert.equal(displayOffCommands('linux', { XDG_SESSION_TYPE: 'wayland' })[0].cmd, 'gdbus');
+  assert.equal(displayOffCommands('linux', { XDG_SESSION_TYPE: 'wayland' }).at(-1).cmd, 'xset');
+  assert.deepEqual(displayOffCommands('freebsd'), []);
+});
+
+test('displayOff tries the next command when one fails, and reports when none work', async () => {
+  const calls = [];
+  const exec = async (cmd) => { calls.push(cmd); return { code: cmd === 'qdbus' ? 0 : 1, stdout: '', stderr: '' }; };
+  const a = new Awake({ dataDir: tmp(), platform: 'linux', exec });
+  assert.equal(await a.displayOff({ XDG_SESSION_TYPE: 'wayland' }), null);
+  assert.deepEqual(calls, ['gdbus', 'qdbus']);
+  const none = new Awake({ dataDir: tmp(), platform: 'linux', exec: async () => ({ code: 1, stdout: '', stderr: '' }) });
+  assert.match(await none.displayOff({}), /Couldn't turn the screen off/);
+  assert.match(await new Awake({ dataDir: tmp(), platform: 'freebsd', exec }).displayOff(), /not supported/);
 });
