@@ -92,6 +92,7 @@ function normEncoderMode(v) {
 }
 
 // Appearance: 'dark' (default) | 'light' | 'system'
+const normAwake = (v) => (['off', 'system', 'display'].includes(v) ? v : 'system');   // keep-awake while working
 const normTheme = (v) => (['dark', 'light', 'system'].includes(v) ? v : 'dark');
 
-module.exports = { ttaArgs, normTheme, normDevice, ncnnDeviceArgs, normEncoderMode, naturalSort, fmtTime, parseFps, isWhole, targetFrames, bitrateFor, planStages, overallPercent, outputBaseName, uniquePath, isImage };
+module.exports = { normAwake, ttaArgs, normTheme, normDevice, ncnnDeviceArgs, normEncoderMode, naturalSort, fmtTime, parseFps, isWhole, targetFrames, bitrateFor, planStages, overallPercent, outputBaseName, uniquePath, isImage };

@@ -7,6 +7,7 @@ const path = require('path');
 const { Tools } = require('./tools');
 const { Pipeline } = require('./pipeline');
 const U = require('./util');
+const { Awake } = require('./awake');
 
 function usage() {
   console.log(`Usage: frameup-cli <video-or-frames-folder> [options]
@@ -22,8 +23,23 @@ function usage() {
   --encoder <m>         auto | gpu | cpu  (HEVC hardware vs x265/x264)   [default: auto]
   --upscale-tta         Upscayl TTA mode (slower, slightly cleaner)
   --interp-tta          RIFE spatial TTA mode (slower, a little smoother)
+  --keep-awake [m]      keep the computer awake while working: system | display | off  [default: off]
+  --screen-off          turn the screen off a few seconds after the run starts (the job keeps running)
+  --stay-awake-lid      also stay awake with the lid closed (asks for admin rights on macOS)
   --device <d>          shortcut: gpu or cpu for all three stages above
   --list-models         Show installed Upscayl models and exit`);
+}
+
+// Flags that take a value; everything else starting with -- is a switch, so the next argument can still be the input.
+const VALUE_FLAGS = new Set(['--upscale', '--scale', '--fps', '--engine', '--src-fps', '--out', '--temp', '--upscale-device', '--interp-device', '--encoder', '--device']);
+function findInput(argv) {
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (!a.startsWith('-')) return a;
+    if (VALUE_FLAGS.has(a)) i++;
+    else if (a === '--keep-awake' && ['system', 'display', 'off'].includes(argv[i + 1])) i++;
+  }
+  return undefined;
 }
 
 async function main() {
@@ -37,7 +53,7 @@ async function main() {
     console.log(up ? up.models.join('\n') : 'Upscayl not found (it is downloaded automatically on first use).');
     return;
   }
-  const input = argv.find((a, i) => !a.startsWith('--') && !(argv[i - 1] || '').startsWith('--'));
+  const input = findInput(argv);
   if (!input || argv.includes('-h') || argv.includes('--help')) { usage(); process.exit(input ? 0 : 2); }
 
   const isDir = fs.statSync(input).isDirectory();
@@ -64,12 +80,21 @@ async function main() {
   });
   p.on('log', (l) => { if (process.env.FRAMEUP_VERBOSE) console.error(`\n${l}`); });
   process.on('SIGINT', () => p.cancel());
+  const ka = argv.indexOf('--keep-awake');
+  const awakeMode = ka < 0 ? 'off' : (['system', 'display', 'off'].includes(argv[ka + 1]) ? argv[ka + 1] : 'system');
+  const awake = new Awake({ dataDir, log: (l) => { if (process.env.FRAMEUP_VERBOSE) console.error(`\n${l}`); } });
   try {
-    const r = await p.run();
+    for (const w of await awake.start({ mode: awakeMode, lid: argv.includes('--stay-awake-lid') })) console.error(`Warning: ${w}`);
+    let screenTimer = null;
+    if (argv.includes('--screen-off') && awakeMode !== 'display') screenTimer = setTimeout(() => awake.displayOff().then((w) => w && console.error(`Warning: ${w}`)).catch(() => {}), 5000);
+    let r;
+    try { r = await p.run(); } finally { clearTimeout(screenTimer); }
     console.log(`\nDone: ${r.output}\n${r.frames ?? '?'} frames, ${r.width}x${r.height}, ${r.fps} fps, ${U.fmtTime(r.elapsed)}`);
   } catch (e) {
     console.error(`\n${e.message}`);
+    await awake.stop();
     process.exit(1);
   }
+  await awake.stop();
 }
 main();

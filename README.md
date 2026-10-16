@@ -20,6 +20,8 @@ Point it at a **video** (or a **folder of frames**) and it runs the whole pipeli
    (VideoToolbox / NVENC / AMF / QuickSync), falling back to x265 / x264
 5. **Audio** from a source video is copied into the result (stream copy, or AAC if the original codec doesn't fit in MP4). Not applicable to a folder of frames.
 
+**Keep awake.** *Settings → Keep the computer awake* stops the computer sleeping while a job runs (on by default), with an optional *stay awake with the lid closed* mode. macOS uses `caffeinate` (lid mode runs `pmset disablesleep` after a password prompt and turns sleep back on afterwards), Windows uses a power request (lid mode temporarily sets “closing the lid” to do nothing), Linux uses `systemd-inhibit`. There is also *Turn the screen off when a run starts* (the job keeps running with the display off). On the CLI: `--keep-awake [system|display]`, `--screen-off` and `--stay-awake-lid`.
+
 **Appearance.** FrameUp has a dark and a light theme (or follows your system). Change it in *Settings*: the button in the top bar, or **⌘,** on macOS / **Ctrl+,** on Windows and Linux.
 
 A live progress view shows the current stage, `frames done / queued`, speed, ETA and overall progress. Cancelling is safe and temporary files are always cleaned up.

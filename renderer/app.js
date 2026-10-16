@@ -16,6 +16,7 @@ const S = {
   fpsMode: '60', customFps: 48, engine: 'rife',
   devices: { upscale: 'auto', interpolate: 'auto', encode: 'auto' },
   tta: { upscale: false, interpolate: false },
+  awake: 'system', awakeLid: false, screenOff: false,
   theme: document.documentElement.dataset.theme || 'dark',
   running: false,
 };
@@ -221,6 +222,32 @@ window.addEventListener('keydown', (e) => {             // Windows / Linux (and 
 });
 applyTheme(S.theme);
 
+// keep-awake while working
+const AWAKE_HINT = {
+  darwin: 'Uses caffeinate. Lid-closed mode runs “pmset disablesleep” as an administrator (macOS asks for your password when a run starts) and turns normal sleep back on when the run ends.',
+  win32: 'Uses a Windows power request. Lid-closed mode sets “closing the lid” to do nothing while a run is going, then restores your setting.',
+  linux: 'Uses systemd-inhibit. Lid-closed mode also blocks the lid switch from suspending the computer.',
+};
+function renderAwake() {
+  $('awakeMode').value = S.awake;
+  $('awakeLid').checked = S.awakeLid;
+  const keepOn = S.awake === 'display';
+  $('screenOff').checked = S.screenOff && !keepOn;
+  $('screenOff').disabled = keepOn;
+  $('screenOffHint').textContent = keepOn
+    ? 'Not available while “keep the screen on” is selected above.'
+    : 'The job keeps running with the display off. Moving the mouse or pressing a key wakes the display; it does not interrupt the job.'
+      + (S.screenOff && S.awake === 'off' ? ' Choose “While working” above too, or the computer may fall asleep once the screen is off.' : '');
+  $('awakeHint').textContent = (AWAKE_HINT[api.platform] || '') + (S.awakeLid ? ' Don’t put the laptop in a bag while this is on: it can get hot.' : '');
+}
+async function setAwake(patch) { Object.assign(S, patch); await api.settings.set({ awake: S.awake, awakeLid: S.awakeLid, screenOff: S.screenOff }); renderAwake(); }
+$('awakeMode').addEventListener('change', () => setAwake({ awake: $('awakeMode').value }));
+$('screenOff').addEventListener('change', () => setAwake({ screenOff: $('screenOff').checked }));
+$('awakeLid').addEventListener('change', () => setAwake({ awakeLid: $('awakeLid').checked }));
+$('awakeRestore').addEventListener('click', async () => { if (await api.awakeRestore()) show('awakeLeftover', false); });
+api.onAwakeLeftover(() => { show('awakeLeftover'); openSettings(); });
+renderAwake();
+
 // ---------- derived UI ----------
 let freeCache = {};
 async function freeSpace(dir) {
@@ -367,6 +394,11 @@ $('doneAgain').addEventListener('click', () => { view('setup'); update(); });
   S.workRoot = S.settings.workRoot || null;
   S.devices = { ...S.devices, ...(S.settings.devices || {}) };
   S.tta = { ...S.tta, ...(S.settings.tta || {}) };
+  if (['off', 'system', 'display'].includes(S.settings.awake)) S.awake = S.settings.awake;
+  S.awakeLid = !!S.settings.awakeLid;
+  S.screenOff = !!S.settings.screenOff;
+  renderAwake();
+  if ((await api.awakeStatus()).macNeedsRestore) show('awakeLeftover');
   await refreshTools();
   update();
   window.__frameup = { S, onProgress, showDone, showFailed, setSource, update, view }; // used by screenshot script
